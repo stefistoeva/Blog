@@ -2,7 +2,11 @@
 
 namespace SoftUniBlogBundle\Repository;
 
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
+use Doctrine\ORM\Mapping;
+use Doctrine\ORM\OptimisticLockException;
+use SoftUniBlogBundle\Entity\User;
 
 /**
  * UserRepository
@@ -12,4 +16,22 @@ use Doctrine\ORM\EntityRepository;
  */
 class UserRepository extends EntityRepository
 {
+    public function __construct(EntityManagerInterface $em,
+                                Mapping\ClassMetadata $metaData = null)
+    {
+        parent::__construct($em,
+            $metaData == null ? new Mapping\ClassMetadata(User::class) :
+            $metaData);
+    }
+
+    public function insert(User $user)
+    {
+        try {
+            $this->_em->persist($user);
+            $this->_em->flush();
+            return true;
+        } catch (OptimisticLockException $e) {
+            return false;
+        }
+    }
 }

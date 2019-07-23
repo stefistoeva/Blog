@@ -4,6 +4,7 @@ namespace SoftUniBlogBundle\Entity;
 
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\Mapping as ORM;
+use Doctrine\ORM\Mapping\JoinColumn;
 use Symfony\Component\Security\Core\User\UserInterface;
 
 /**
@@ -51,9 +52,22 @@ class User implements UserInterface
      */
     private $articles;
 
+    /**
+     * @var ArrayCollection
+     *
+     * @ORM\ManyToMany(targetEntity="SoftUniBlogBundle\Entity\Role")
+     *
+     * @ORM\JoinTable(name="users_roles",
+     *     joinColumns={@JoinColumn(name="user_id", referencedColumnName="id")},
+     *     inverseJoinColumns={@JoinColumn(name="role_id", referencedColumnName="id")}
+     *     )
+     */
+    private $roles;
+
     public function __construct()
     {
         $this->articles = new ArrayCollection();
+        $this->roles = new ArrayCollection();
     }
 
     /**
@@ -150,11 +164,18 @@ class User implements UserInterface
      * and populated in any number of different ways when the user object
      * is created.
      *
-     * @return (Role|string)[] The user roles
+     * @return array (Role|string)[] The user roles
      */
     public function getRoles()
     {
-        return [];
+        $stringRoles = [];
+
+        /** @var Role $role */
+        foreach ($this->roles as $role) {
+            $stringRoles[] = $role->getRole();
+        }
+
+        return $stringRoles;
     }
 
     /**
@@ -202,11 +223,38 @@ class User implements UserInterface
      * @param Article $article
      * @return User
      */
-    public function addPostte(Article $article)
+    public function addPost(Article $article)
     {
         $this->articles[] = $article;
 
         return $this;
     }
-}
 
+    /**
+     * @param Role $role
+     * @return User
+     */
+    public function addRole(Role $role)
+    {
+        $this->roles[] = $role;
+
+        return $this;
+    }
+
+    /**
+     * @param Article $article
+     * @return bool
+     */
+    public function isAuthor(Article $article)
+    {
+        return $article->getAuthor()->getId() === $this->getId();
+    }
+
+    /**
+     * @return bool
+     */
+    public function isAdmin()
+    {
+        return in_array("ROLE_ADMIN", $this->getRoles());
+    }
+}

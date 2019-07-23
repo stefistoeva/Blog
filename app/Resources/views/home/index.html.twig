@@ -2,11 +2,29 @@
 
 {% block body %}
 
+    {% for msg in app.session.flashbag.get('info')  %}
+        <div class="alert alert-success" id="info">
+            {{ msg }}
+        </div>
+    {% endfor %}
+
+    {% for msg in app.session.flashbag.get('errors')  %}
+        <div class="alert alert-danger">
+            {{ msg }}
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    {% endfor %}
+
     <div class="container body-content">
         <div class="row">
             {% for article in articles %}
-                <div class="col-md-4">
+                <div class="col-md-6">
                     <article>
+                        <a href="{{ path('article_view', {id: article.id}) }}">
+                            <img src="{{ article.imageURL }}" width="400px" height="200px">
+                        </a>
                         <header>
                             <h2>{{ article.title }}</h2>
                         </header>
@@ -14,6 +32,9 @@
                         <p>
                             {{ article.summary }}
                         </p>
+
+                        <small>Views: {{ article.viewCount }}</small><br/>
+                        <small>Date Added: {{ article.dateAdded|date("F jS \\a\\t g:ia") }}</small>
 
                         <small class="author">
                             {{ article.author.fullName }}

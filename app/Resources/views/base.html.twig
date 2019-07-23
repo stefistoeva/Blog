@@ -1,8 +1,3 @@
-{#
-   This is the base template used as the application layout which contains the
-   common elements and decorates all the other templates.
-   See http://symfony.com/doc/current/book/templating.html#template-inheritance-and-layouts
-#}
 <!DOCTYPE html>
 <html lang="en-US">
 <head>
@@ -14,6 +9,11 @@
         <link rel="stylesheet" href="{{ asset('css/bootstrap-datetimepicker.min.css') }}">
     {% endblock %}
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}"/>
+    <script>
+        setTimeout(function () {
+            $('#info').fadeOut();
+        }, 2000)
+    </script>
 </head>
 
 <body id="{% block body_id %}{% endblock %}">
@@ -36,6 +36,11 @@
                         <li>
                         <a href="{{ path('user_profile') }}" class="navbar-brand">
                         My Profile
+                        </a>
+                        </li>
+                        <li>
+                        <a href="{{ path('my_articles') }}" class="navbar-brand">
+                        My Articles
                         </a>
                         </li>
                         <li>

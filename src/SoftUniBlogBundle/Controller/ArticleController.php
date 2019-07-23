@@ -4,6 +4,7 @@ namespace SoftUniBlogBundle\Controller;
 
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Security;
 use SoftUniBlogBundle\Entity\Article;
+use SoftUniBlogBundle\Entity\User;
 use SoftUniBlogBundle\Form\ArticleType;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\HttpFoundation\Request;
@@ -13,29 +14,41 @@ use Symfony\Component\Routing\Annotation\Route;
 class ArticleController extends Controller
 {
     /**
-     * @Route("/create", name="article_create")
+     * @Route("/create", name="article_create", methods={"GET"})
+     *
+     * @Security("is_granted('IS_AUTHENTICATED_FULLY')")
+     * @return Response
+     */
+    public function create()
+    {
+        return $this->render('articles/create.html.twig',
+            ['form' => $this
+                ->createForm(ArticleType::class)
+                ->createView()]);
+    }
+
+    /**
+     * @Route("/create", methods={"POST"})
      *
      * @Security("is_granted('IS_AUTHENTICATED_FULLY')")
      * @param Request $request
      * @return Response
      */
-    public function create(Request $request)
+    public function createProcess(Request $request)
     {
         $article = new Article();
         $form = $this->createForm(ArticleType::class, $article);
         $form->handleRequest($request);
 
-        if ($form->isSubmitted()) {
-            $article->setAuthor($this->getUser());
-            $em = $this->getDoctrine()->getManager();
-            $em->persist($article);
-            $em->flush();
+        $article->setAuthor($this->getUser());
+        $article->setViewCount(0);
+        $em = $this->getDoctrine()->getManager();
+        $em->persist($article);
+        $em->flush();
 
-            return $this->redirectToRoute("blog_index");
-        }
-        
-        return $this->render('articles/create.html.twig',
-            ['form' => $form->createView()]);
+        $this->addFlash("info", "Create article successfully");
+
+        return $this->redirectToRoute("blog_index");
     }
 
     /**
@@ -52,6 +65,14 @@ class ArticleController extends Controller
             ->getDoctrine()
             ->getRepository(Article::class)
             ->find($id);
+
+        if (null === $article) {
+            return $this->redirectToRoute("blog_index");
+        }
+
+        if (!$this->isAuthorOrAdmin($article)) {
+            return $this->redirectToRoute("blog_index");
+        }
 
         $form = $this->createForm(ArticleType::class, $article);
         $form->handleRequest($request);
@@ -76,15 +97,23 @@ class ArticleController extends Controller
      *
      * @Security("is_granted('IS_AUTHENTICATED_FULLY')")
      * @param Request $request
-     * @param Article $article
+     * @param int $id
      * @return Response
      */
-    public function delete(Request $request, Article $article)
+    public function delete(Request $request, int $id)
     {
-//        $article = $this
-//            ->getDoctrine()
-//            ->getRepository(Article::class)
-//            ->find($id);
+        $article = $this
+            ->getDoctrine()
+            ->getRepository(Article::class)
+            ->find($id);
+
+        if (null === $article) {
+            return $this->redirectToRoute("blog_index");
+        }
+
+        if (!$this->isAuthorOrAdmin($article)) {
+            return $this->redirectToRoute("blog_index");
+        }
 
         $form = $this->createForm(ArticleType::class, $article);
         $form->handleRequest($request);
@@ -107,17 +136,63 @@ class ArticleController extends Controller
     /**
      * @Route("/article/{id}", name="article_view")
      *
-     * @param Article $article
+     * @param $id
      * @return Response
      */
-    public function view(Article $article)
+    public function view($id)
     {
-//        $article = $this
-//            ->getDoctrine()
-//            ->getRepository(Article::class)
-//            ->find($id);
+        $article = $this
+            ->getDoctrine()
+            ->getRepository(Article::class)
+            ->find($id);
+
+        if (null === $article) {
+            return $this->redirectToRoute("blog_index");
+        }
+
+        $article->setViewCount($article->getViewCount() + 1);
+        $em = $this->getDoctrine()->getManager();
+        $em->persist($article);
+        $em->flush();
 
         return $this->render('articles/view.html.twig',
-            ['article' => $article]);
+            [
+                'article' => $article
+            ]);
+    }
+
+    /**
+     * @param Article $article
+     * @return bool
+     */
+    private function isAuthorOrAdmin(Article $article)
+    {
+        /** @var User $currentUser */
+        $currentUser = $this->getUser();
+
+        if (!$currentUser->isAuthor($article) && !$currentUser->isAdmin()) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * @Route("/articles/my_articles", name="my_articles")
+     * @Security("is_granted('IS_AUTHENTICATED_FULLY')")
+     * @return Response
+     */
+    public function getAllArticlesByUser()
+    {
+        $articles = $this
+            ->getDoctrine()
+            ->getRepository(Article::class)
+            ->findBy(['author' => $this->getUser()],
+                [
+                    'dateAdded' => 'DESC'
+                ]);
+
+        return $this->render("articles/myArticles.html.twig",
+            ['articles' => $articles]);
     }
 }

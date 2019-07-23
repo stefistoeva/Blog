@@ -2,6 +2,12 @@
 
 namespace SoftUniBlogBundle\Repository;
 
+use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Mapping;
+use Doctrine\ORM\OptimisticLockException;
+use SoftUniBlogBundle\Entity\Article;
+use SoftUniBlogBundle\Entity\User;
+
 /**
  * ArticleRepository
  *
@@ -10,4 +16,11 @@ namespace SoftUniBlogBundle\Repository;
  */
 class ArticleRepository extends \Doctrine\ORM\EntityRepository
 {
+    public function __construct(EntityManagerInterface $em,
+                                Mapping\ClassMetadata $metaData)
+    {
+        parent::__construct($em,
+            $metaData == null ? new Mapping\ClassMetadata(Article::class) :
+                $metaData);
+    }
 }
