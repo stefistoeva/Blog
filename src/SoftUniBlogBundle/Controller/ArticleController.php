@@ -6,6 +6,7 @@ use Sensio\Bundle\FrameworkExtraBundle\Configuration\Security;
 use SoftUniBlogBundle\Entity\Article;
 use SoftUniBlogBundle\Entity\User;
 use SoftUniBlogBundle\Form\ArticleType;
+use SoftUniBlogBundle\Service\Articles\ArticleServiceInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -13,6 +14,20 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class ArticleController extends Controller
 {
+    /**
+     * @var ArticleServiceInterface
+     */
+    private $articleService;
+
+    /**
+     * ArticleController constructor.
+     * @param $articleService
+     */
+    public function __construct(ArticleServiceInterface $articleService)
+    {
+        $this->articleService = $articleService;
+    }
+
     /**
      * @Route("/create", name="article_create", methods={"GET"})
      *
@@ -39,32 +54,67 @@ class ArticleController extends Controller
         $article = new Article();
         $form = $this->createForm(ArticleType::class, $article);
         $form->handleRequest($request);
-
-        $article->setAuthor($this->getUser());
-        $article->setViewCount(0);
-        $em = $this->getDoctrine()->getManager();
-        $em->persist($article);
-        $em->flush();
+        $this->articleService->create($article);
 
         $this->addFlash("info", "Create article successfully");
-
         return $this->redirectToRoute("blog_index");
     }
 
     /**
-     * @Route("/edit/{id}", name="article_edit")
+     * @Route("/edit/{id}", name="article_edit", methods={"GET"})
+     *
+     * @Security("is_granted('IS_AUTHENTICATED_FULLY')")
+     * @param $id
+     * @return Response
+     */
+    public function edit($id)
+    {
+        $article = $this->articleService->getOne($id);
+
+        if (null === $article) {
+            return $this->redirectToRoute("blog_index");
+        }
+
+        if (!$this->isAuthorOrAdmin($article)) {
+            return $this->redirectToRoute("blog_index");
+        }
+
+        return $this->render('articles/edit.html.twig',
+            [
+                'form' => $this->createForm(ArticleType::class),
+                'article' => $article
+            ]);
+    }
+
+    /**
+     * @Route("/edit/{id}", methods={"POST"})
      *
      * @Security("is_granted('IS_AUTHENTICATED_FULLY')")
      * @param Request $request
      * @param $id
      * @return Response
      */
-    public function edit(Request $request, $id)
+    public function editProcess(Request $request, $id)
     {
-        $article = $this
-            ->getDoctrine()
-            ->getRepository(Article::class)
-            ->find($id);
+        $article = $this->articleService->getOne($id);
+
+        $form = $this->createForm(ArticleType::class, $article);
+        $form->handleRequest($request);
+        $this->articleService->edit($article);
+
+        return $this->redirectToRoute("blog_index");
+    }
+
+    /**
+     * @Route("/delete/{id}", name="article_delete", methods={"GET"})
+     *
+     * @Security("is_granted('IS_AUTHENTICATED_FULLY')")
+     * @param int $id
+     * @return Response
+     */
+    public function delete(int $id)
+    {
+        $article = $this->articleService->getOne($id);
 
         if (null === $article) {
             return $this->redirectToRoute("blog_index");
@@ -74,63 +124,31 @@ class ArticleController extends Controller
             return $this->redirectToRoute("blog_index");
         }
 
-        $form = $this->createForm(ArticleType::class, $article);
-        $form->handleRequest($request);
-
-        if ($form->isSubmitted()) {
-            $em = $this->getDoctrine()->getManager();
-            $em->merge($article);
-            $em->flush();
-
-            return $this->redirectToRoute("blog_index");
-        }
-
-        return $this->render('articles/edit.html.twig',
+        return $this->render('articles/delete.html.twig',
             [
-                'form' => $form->createView(),
+                'form' => $this->createForm(ArticleType::class)->createView(),
                 'article' => $article
             ]);
     }
 
     /**
-     * @Route("/delete/{id}", name="article_delete")
+     * @Route("/delete/{id}", methods={"POST"})
      *
      * @Security("is_granted('IS_AUTHENTICATED_FULLY')")
      * @param Request $request
      * @param int $id
      * @return Response
      */
-    public function delete(Request $request, int $id)
+    public function deleteProcess(Request $request, int $id)
     {
-        $article = $this
-            ->getDoctrine()
-            ->getRepository(Article::class)
-            ->find($id);
-
-        if (null === $article) {
-            return $this->redirectToRoute("blog_index");
-        }
-
-        if (!$this->isAuthorOrAdmin($article)) {
-            return $this->redirectToRoute("blog_index");
-        }
-
+        $article = $this->articleService->getOne($id);
         $form = $this->createForm(ArticleType::class, $article);
+
+        $form->remove('imageURL');
+
         $form->handleRequest($request);
-
-        if ($form->isSubmitted()) {
-            $em = $this->getDoctrine()->getManager();
-            $em->remove($article);
-            $em->flush();
-
-            return $this->redirectToRoute("blog_index");
-        }
-
-        return $this->render('articles/delete.html.twig',
-            [
-                'form' => $form->createView(),
-                'article' => $article
-            ]);
+        $this->articleService->delete($article);
+        return $this->redirectToRoute("blog_index");
     }
 
     /**
@@ -141,10 +159,7 @@ class ArticleController extends Controller
      */
     public function view($id)
     {
-        $article = $this
-            ->getDoctrine()
-            ->getRepository(Article::class)
-            ->find($id);
+        $article = $this->articleService->getOne($id);
 
         if (null === $article) {
             return $this->redirectToRoute("blog_index");
