@@ -1,3 +1,8 @@
+soft_uni_rest_api:
+    resource: "@SoftUniRestApiBundle/Controller/"
+    type:     annotation
+    prefix:   /api
+
 app:
     resource: '@SoftUniBlogBundle/Controller/'
     type: annotation

@@ -17,6 +17,8 @@ class AppKernel extends Kernel
             new Doctrine\Bundle\DoctrineBundle\DoctrineBundle(),
             new Sensio\Bundle\FrameworkExtraBundle\SensioFrameworkExtraBundle(),
             new SoftUniBlogBundle\SoftUniBlogBundle(),
+            new JMS\SerializerBundle\JMSSerializerBundle(),
+            new SoftUniRestApiBundle\SoftUniRestApiBundle(),
         ];
 
         if (in_array($this->getEnvironment(), ['dev', 'test'], true)) {
