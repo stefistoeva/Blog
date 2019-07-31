@@ -8,6 +8,9 @@ use SoftUniBlogBundle\Entity\User;
 use SoftUniBlogBundle\Form\ArticleType;
 use SoftUniBlogBundle\Service\Articles\ArticleServiceInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
+use Symfony\Component\Form\Form;
+use Symfony\Component\Form\FormInterface;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -54,6 +57,7 @@ class ArticleController extends Controller
         $article = new Article();
         $form = $this->createForm(ArticleType::class, $article);
         $form->handleRequest($request);
+        $this->uploadFile($form, $article);
         $this->articleService->create($article);
 
         $this->addFlash("info", "Create article successfully");
@@ -81,7 +85,7 @@ class ArticleController extends Controller
 
         return $this->render('articles/edit.html.twig',
             [
-                'form' => $this->createForm(ArticleType::class),
+                'form' => $this->createForm(ArticleType::class)->createView(),
                 'article' => $article
             ]);
     }
@@ -100,6 +104,7 @@ class ArticleController extends Controller
 
         $form = $this->createForm(ArticleType::class, $article);
         $form->handleRequest($request);
+        $this->uploadFile($form, $article);
         $this->articleService->edit($article);
 
         return $this->redirectToRoute("blog_index");
@@ -209,5 +214,25 @@ class ArticleController extends Controller
 
         return $this->render("articles/myArticles.html.twig",
             ['articles' => $articles]);
+    }
+
+    /**
+     * @param FormInterface $form
+     * @param Article $article
+     */
+    private function uploadFile(FormInterface $form, Article $article)
+    {
+        /** @var UploadedFile $file */
+        $file = $form['image']->getData();
+        $fileName = md5(uniqid()) . '.' . $file->guessExtension();
+
+        if ($file) {
+            $file->move(
+                $this->getParameter('articles_directory'),
+                $fileName
+            );
+
+            $article->setImage($fileName);
+        }
     }
 }
