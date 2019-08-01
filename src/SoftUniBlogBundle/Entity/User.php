@@ -46,6 +46,13 @@ class User implements UserInterface
     private $fullName;
 
     /**
+     * @var string
+     *
+     * @ORM\Column(name="image", type="string", length=255)
+     */
+    private $image;
+
+    /**
      * @var ArrayCollection
      *
      * @ORM\OneToMany(targetEntity="SoftUniBlogBundle\Entity\Article", mappedBy="author")
@@ -151,6 +158,23 @@ class User implements UserInterface
     {
         return $this->fullName;
     }
+
+    /**
+     * @return string
+     */
+    public function getImage()
+    {
+        return $this->image;
+    }
+
+    /**
+     * @param string $image
+     */
+    public function setImage(string $image)
+    {
+        $this->image = $image;
+    }
+
 
     /**
      * Returns the roles granted to the user.

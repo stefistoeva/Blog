@@ -4,5 +4,8 @@
 
     <h1>Hello {{ user.email }}</h1>
     <h3>{{ user.fullName }}</h3>
-
+    <div>
+        <img class="rounded-circle" src="{{ asset('uploads/images/users/' ~ user.image) }}" width="200px" height="200px">
+    </div>
+    <a href="{{ path('user_edit_profile') }}" class="btn btn-success btn-sm">Edit Profile</a>
 {% endblock %}

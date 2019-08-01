@@ -77,4 +77,9 @@ class UserService implements UserServiceInterface
     {
         return $this->security->getUser();
     }
+
+    public function update(User $user): bool
+    {
+        return $this->userRepository->update($user);
+    }
 }
